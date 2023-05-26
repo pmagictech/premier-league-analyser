@@ -1,0 +1,21 @@
+version: "3.3"
+services:
+  app:
+    image: node:18-alpine
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    ports:
+      - 3000:3000
+    command: npm run dev
+    env_file:
+      - .env
+
+  server:
+    build: ./server
+    volumes:
+      - ./server:/server
+    ports:
+      - 5000:5000
+    env_file:
+      - .env

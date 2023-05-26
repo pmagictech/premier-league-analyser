@@ -1,0 +1,4 @@
+lxml
+Flask
+requests
+beautifulsoup4
