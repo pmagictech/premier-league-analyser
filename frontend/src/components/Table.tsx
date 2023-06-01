@@ -1,105 +1,106 @@
-import { useMemo } from "react";
-import { CellProps, Column, useTable } from "react-table";
+import { RowSelectionState, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
+import { useEffect, useMemo, useState } from "react";
 
 import { Team } from "@src/types";
 
 interface TableProps {
   teams: Team[];
   selectedTeams: Team[];
-  selectTeam: (team: Team, checked: boolean) => void;
+  onSelectTeam: (team: Team, checked: boolean) => void;
 }
 
-export default function Table({ teams, selectedTeams, selectTeam }: TableProps) {
+export default function Table({ teams, selectedTeams, onSelectTeam }: TableProps) {
   const columns = useMemo(
     () => [
       {
-        Header: "",
-        accessor: "club",
-        id: "checkbox",
-        Cell: ({ row, value }: CellProps<any, string>) => {
-          return (
-            <input
-              type="checkbox"
-              checked={selectedTeams.map(({ club }: any) => club).includes(value)}
-              onChange={(e) => selectTeam(row.original, e.target.checked)}
-              className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-offset-0 focus:ring-indigo-200 focus:ring-opacity-50"
-            />
-          );
-        },
+        header: "#",
+        accessorKey: "position",
       },
       {
-        Header: "#",
-        accessor: "position",
+        header: "Club",
+        accessorKey: "club",
+        cell: ({ getValue }: any) => <b>{getValue()}</b>,
       },
       {
-        Header: "Club",
-        accessor: "club",
+        header: "Played",
+        accessorKey: "played",
       },
       {
-        Header: "Played",
-        accessor: "played",
+        header: "Drawn",
+        accessorKey: "drawn",
       },
       {
-        Header: "Drawn",
-        accessor: "drawn",
+        header: "Lost",
+        accessorKey: "lost",
       },
       {
-        Header: "Lost",
-        accessor: "lost",
+        header: "GD",
+        accessorKey: "gd",
       },
       {
-        Header: "GD",
-        accessor: "gd",
-      },
-      {
-        Header: "Points",
-        accessor: "points",
-        Cell: ({ value }: CellProps<any, string>) => <b>{value}</b>,
+        header: "Points",
+        accessorKey: "points",
+        cell: ({ getValue }: any) => <b>{getValue()}</b>,
       },
     ],
-    [selectTeam, selectedTeams]
-  ) as Column<Team>[];
+    []
+  );
 
   const data = useMemo(() => teams, [teams]);
 
-  const tableInstance = useTable({ columns, data });
+  const rowSelection = useMemo(() => {
+    const selections: RowSelectionState = {};
+    selectedTeams.forEach((team) => (selections[data.findIndex(({ club }) => team.club == club)] = true));
 
-  const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } = tableInstance;
+    return selections;
+  }, [selectedTeams, data]);
+
+  const { getHeaderGroups, getRowModel } = useReactTable({
+    columns,
+    data,
+    getCoreRowModel: getCoreRowModel(),
+    enableRowSelection: true,
+    state: {
+      rowSelection,
+    },
+  });
 
   return (
-    <table
-      className="border-collapse w-full border border-slate-400 dark:border-slate-500 bg-white dark:bg-slate-800 text-sm shadow-sm"
-      {...getTableProps()}
-    >
-      <thead className="bg-slate-50 dark:bg-slate-700">
-        {headerGroups.map((headerGroup) => (
-          <tr {...headerGroup.getHeaderGroupProps()}>
-            {headerGroup.headers.map((column) => (
+    <table className="border-collapse w-full bg-white dark:bg-slate-800 text-sm shadow-md shadow-slate-300">
+      <thead className="">
+        {getHeaderGroups().map((headerGroup) => (
+          <tr key={headerGroup.id}>
+            {headerGroup.headers.map((header) => (
               <th
-                className="border border-slate-300 dark:border-slate-600 font-semibold p-4 text-slate-900 dark:text-slate-200 text-left"
-                {...column.getHeaderProps()}
+                key={header.id}
+                colSpan={header.colSpan}
+                className="font-semibold p-5 text-slate-900 dark:text-slate-200 text-left"
               >
-                {column.render("Header")}
+                {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
               </th>
             ))}
           </tr>
         ))}
       </thead>
-      <tbody {...getTableBodyProps()}>
-        {rows.map((row) => {
-          prepareRow(row);
+      <tbody>
+        {getRowModel().rows.map((row) => {
+          let className = "text-slate-500 dark:text-slate-400";
+
+          if (row.getIsSelected()) className = "bg-blue-600 text-white";
+          else if (row.original.position <= 4) className = "bg-blue-100";
+          else if (row.original.position >= 18) className = "bg-red-100";
+
           return (
-            <tr {...row.getRowProps()}>
-              {row.cells.map((cell) => {
-                return (
-                  <td
-                    className="border border-slate-300 dark:border-slate-700 p-4 text-slate-500 dark:text-slate-400"
-                    {...cell.getCellProps()}
-                  >
-                    {cell.render("Cell")}
-                  </td>
-                );
-              })}
+            <tr
+              key={row.id}
+              className={`border-t border-t-slate-300 dark:border-t-slate-400 hover:bg-slate-100 hover:text-black cursor-pointer ${className}`}
+              onClick={() => onSelectTeam(row.original, row.getIsSelected())}
+            >
+              {row.getVisibleCells().map((cell) => (
+                <td key={cell.id} className="p-5">
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </td>
+              ))}
             </tr>
           );
         })}

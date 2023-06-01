@@ -30,7 +30,7 @@ export default function Layout({ siteTitle, desc, children }: any) {
           </Link>
         </div>
       </header>
-      {children}
+      <main className="bg-gray-100 dark:bg-slate-900 py-1">{children}</main>
       <Modal title={title} type={type} isOpen={isOpen} message={message} closeModal={closeMessage} />
     </>
   );
